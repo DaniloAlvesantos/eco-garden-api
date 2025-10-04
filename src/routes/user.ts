@@ -1,6 +1,7 @@
-import { prisma } from "../lib/prismaClient.js";
-import type { FastifyTypedInstance } from "../types.js";
 import { z } from "zod";
+import { prisma } from "../lib/prismaClient.js";
+import { authenticate } from "../plugin/jwt.js";
+import type { FastifyTypedInstance } from "../types.js";
 import { hashPassword, verifyHashPassword } from "../utils/crypto.js";
 
 export async function UserRoute(app: FastifyTypedInstance) {
@@ -123,6 +124,26 @@ export async function UserRoute(app: FastifyTypedInstance) {
       );
 
       return res.send({ token }).code(200);
+    }
+  );
+
+  app.get(
+    "/user/me",
+    {
+      onRequest: [authenticate],
+      schema: {
+        tags: ["user"],
+        description: "User's informations. JWT required",
+      },
+    },
+    async (req, res) => {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: req.user.sub,
+        },
+      });
+
+      return res.send({ user }).code(200);
     }
   );
 }
