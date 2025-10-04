@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String @id @default(cuid())
+  name         String
+  email        String @unique
+  password     String
+  passwordSalt String
+  phone        String @unique
+}
+
+model Garden {
+  id                String              @id @default(cuid())
+  name              String
+  responsavel       String
+  lat               Float
+  lng               Float
+  img_url           String
+  createdAt         DateTime            @default(now())
+  tamanho_m2        Int
+  irrigationHistory IrrigationHistory[]
+  plants            PlantGarden[]
+}
+
+model Plant {
+  id              Int           @id @default(autoincrement())
+  nome_comum      String
+  nome_cientifico String        @unique
+  umidade_min     Int
+  umidade_max     Int
+  temp_min        Int
+  temp_max        Int
+  gardens         PlantGarden[]
+}
+
+model PlantGarden {
+  id           String   @id @default(cuid())
+  plantId      Int
+  gardenId     String
+  quant        Int
+  data_plantio DateTime
+  plant        Plant    @relation(fields: [plantId], references: [id])
+  garden       Garden   @relation(fields: [gardenId], references: [id])
+}
+
+model Irrigation {
+  id                  String             @id @default(cuid())
+  start_time          DateTime
+  end_time            DateTime
+  volume              Float
+  status              String
+  gardenId            String
+  history             IrrigationHistory? @relation(fields: [irrigationHistoryId], references: [id])
+  irrigationHistoryId String?            @unique
+}
+
+model IrrigationHistory {
+  id          String       @id @default(cuid())
+  gardenId    String
+  temperature Int
+  humidity    Int
+  timestamp   DateTime
+  garden      Garden       @relation(fields: [gardenId], references: [id])
+  irrigations Irrigation[]
+}
