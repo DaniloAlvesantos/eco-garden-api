@@ -9,18 +9,20 @@ datasource db {
 }
 
 model User {
-  id           String @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
-  email        String @unique
+  email        String   @unique
   password     String
   passwordSalt String
-  phone        String @unique
+  phone        String   @unique
+  Garden       Garden[] @relation("UserGardens")
 }
 
 model Garden {
   id                String              @id @default(cuid())
   name              String
-  responsavel       String
+  responsavel       User                @relation("UserGardens", fields: [userId], references: [id])
+  userId            String
   lat               Float
   lng               Float
   img_url           String
@@ -59,7 +61,7 @@ model Irrigation {
   status              String
   gardenId            String
   history             IrrigationHistory? @relation(fields: [irrigationHistoryId], references: [id])
-  irrigationHistoryId String?            @unique
+  irrigationHistoryId String?
 }
 
 model IrrigationHistory {
