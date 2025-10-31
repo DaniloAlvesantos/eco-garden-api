@@ -1,19 +1,26 @@
 import { fastify } from "fastify";
-import { fastifyCors } from "@fastify/cors";
+
 import {
   validatorCompiler,
   serializerCompiler,
   type ZodTypeProvider,
   jsonSchemaTransform,
 } from "fastify-type-provider-zod";
-import fastifySwagger from "@fastify/swagger";
-import fastifySwaggerUi from "@fastify/swagger-ui";
+
 import fastifyJwt from "@fastify/jwt";
+import { fastifyCors } from "@fastify/cors";
+import fastifyStatic from "@fastify/static";
+import fastifySwagger from "@fastify/swagger";
+import fastifyFirebase from "fastify-firebase";
+import fastifySwaggerUi from "@fastify/swagger-ui";
+import fastifyMultipart from "@fastify/multipart";
+
+import path from "node:path";
+//@ts-ignore
+import serviceAccount from "./config/firebase.json";
+
 import { UserRoute } from "./routes/user.js";
 import { GardenRoute } from "./routes/garden.js";
-import fastifyMultipart from "@fastify/multipart";
-import fastifyStatic from "@fastify/static";
-import path from "node:path";
 
 export const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
@@ -26,6 +33,7 @@ app.register(fastifyStatic, {
   root: UPLOADS_DIR,
   prefix: "/uploads/",
 });
+
 app.register(fastifyCors, { origin: "*" });
 app.register(fastifyJwt, {
   secret: "ecogarden-api-2025",
@@ -42,11 +50,14 @@ app.register(fastifySwagger, {
 });
 
 app.register(fastifyMultipart);
+app.register(fastifyFirebase, serviceAccount);
 
 app.register(fastifySwaggerUi, {
   routePrefix: "/docs",
 });
+// END PLUGINS / CONFIGS
 
+/* ROUTES */
 app.get("/", () => "hello world");
 app.register(UserRoute);
 app.register(GardenRoute);

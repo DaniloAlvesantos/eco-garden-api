@@ -15,73 +15,56 @@ model User {
   password     String
   passwordSalt String
   phone        String   @unique
-  Garden       Garden[] @relation("UserGardens")
+  gardens      Garden[] @relation("UserGardens")
+
+  @@index([email])
+  @@index([phone])
 }
 
 model Garden {
-  id                String              @id @default(cuid())
-  name              String
-  owner             User                @relation("UserGardens", fields: [userId], references: [id])
-  userId            String
-  lat               Float
-  lng               Float
-  img_url           String
-  cep               String
-  number            Int
-  createdAt         DateTime            @default(now())
-  tamanho_m2        Int
-  irrigationHistory IrrigationHistory[]
-  plants            PlantGarden[]
+  id        String        @id @default(cuid())
+  name      String
+  userId    String
+  lat       Float
+  lng       Float
+  imgUrl    String
+  cep       String
+  number    Int
+  createdAt DateTime      @default(now())
+  tamanhoM2 Int
 
-  @@unique([lat, lng]) // Um jardim não pode existir na mesma coordenada que outro
-  @@unique([cep, number]) // Um jardim não pode existir no mesmo endereço físico (CEP + número)
+  owner  User          @relation("UserGardens", fields: [userId], references: [id])
+  plants PlantGarden[]
+
+  @@unique([lat, lng])
+  @@unique([cep, number])
   @@index([userId])
 }
 
 model Plant {
-  id              Int           @id @default(autoincrement())
-  nome_comum      String
-  nome_cientifico String        @unique
-  umidade_min     Int
-  umidade_max     Int
-  temp_min        Int
-  temp_max        Int
-  gardens         PlantGarden[]
+  id             Int           @id @default(autoincrement())
+  nomeComum      String
+  nomeCientifico String        @unique
+  umidadeMin     Int
+  umidadeMax     Int
+  tempMin        Int
+  tempMax        Int
+  gardens        PlantGarden[]
+
+  @@index([nomeCientifico])
 }
 
 model PlantGarden {
-  id           String   @id @default(cuid())
-  plantId      Int
-  gardenId     String
-  quant        Int
-  data_plantio DateTime
-  plant        Plant    @relation(fields: [plantId], references: [id])
-  garden       Garden   @relation(fields: [gardenId], references: [id])
-
-  @@index([plantId, gardenId])
-}
-
-model Irrigation {
-  id                  String             @id @default(cuid())
-  start_time          DateTime
-  end_time            DateTime
-  volume              Float
-  status              String
-  gardenId            String
-  history             IrrigationHistory? @relation(fields: [irrigationHistoryId], references: [id])
-  irrigationHistoryId String?
-
-  @@index([irrigationHistoryId])
-}
-
-model IrrigationHistory {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
+  plantId     Int
   gardenId    String
-  temperature Int
-  humidity    Int
-  timestamp   DateTime
-  garden      Garden       @relation(fields: [gardenId], references: [id])
-  irrigations Irrigation[]
+  quant       Int
+  dataPlantio DateTime
 
+  plant  Plant  @relation(fields: [plantId], references: [id])
+  garden Garden @relation(fields: [gardenId], references: [id])
+
+  @@unique([plantId, gardenId])
+  @@index([plantId])
   @@index([gardenId])
 }

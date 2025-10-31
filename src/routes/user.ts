@@ -63,7 +63,6 @@ export async function UserRoute(app: FastifyTypedInstance) {
           name,
           email,
           phone,
-          password: hash,
         },
         {
           sub: user.id,
@@ -76,7 +75,7 @@ export async function UserRoute(app: FastifyTypedInstance) {
   );
 
   app.post(
-    "/user/signin",
+    "/user/login",
     {
       schema: {
         tags: ["user"],
@@ -115,7 +114,6 @@ export async function UserRoute(app: FastifyTypedInstance) {
           name: user.name,
           email: user.email,
           phone: user.phone,
-          password: user.password,
         },
         {
           sub: user.id,

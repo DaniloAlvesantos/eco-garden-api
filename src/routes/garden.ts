@@ -8,6 +8,7 @@ import type { FastifyTypedInstance } from "../types.js";
 import type { MapDataCoding } from "../@types/mapData.type.js";
 import { CEP } from "../lib/cep.js";
 import type { CEPType } from "../@types/cep.type.js";
+import { recordIrrigationEvent } from "../utils/recordIrrigationEvent.js";
 
 export async function GardenRoute(app: FastifyTypedInstance) {
   app.get(
@@ -38,7 +39,7 @@ export async function GardenRoute(app: FastifyTypedInstance) {
             cep: z.string().max(8).min(8),
             place: z.string(),
             number: z.int(),
-            tamanho_m2: z.int(),
+            tamanhoM2: z.int(),
             img: z
               .file()
               .max(1024 * 1024 * 10)
@@ -59,7 +60,7 @@ export async function GardenRoute(app: FastifyTypedInstance) {
       },
     },
     async (req, res) => {
-      const { cep, name, number, tamanho_m2, place, img } = req.body;
+      const { cep, name, number, tamanhoM2, place } = req.body;
 
       const placeParams = new URLSearchParams(place).toString();
       const response = await MapData.get<MapDataCoding>(
@@ -100,15 +101,22 @@ export async function GardenRoute(app: FastifyTypedInstance) {
           lng: mapData.lng,
           cep,
           number,
-          tamanho_m2,
-          img_url: uploadRes.imgUrl,
+          tamanhoM2,
+          imgUrl: uploadRes.imgUrl,
           owner: {
             connect: { id: req.user.sub },
           },
         },
       });
 
-      return res.send({ data: garden }).code(201);
+      const collection = await recordIrrigationEvent({
+        gardenId: garden.id,
+        humidity: 0,
+        temperature: 0,
+        volume: 0,
+      });
+
+      return res.send({ data: garden, collection }).code(201);
     }
   );
 
@@ -137,6 +145,12 @@ export async function GardenRoute(app: FastifyTypedInstance) {
               email: true,
             },
           },
+          plants: {
+            select: {
+              plant: true,
+              quant: true,
+            },
+          },
         },
       });
 
@@ -155,7 +169,7 @@ export async function GardenRoute(app: FastifyTypedInstance) {
       const data = {
         garden: {
           ...garden,
-          img_url: `http://localhost:3333` + garden.img_url,
+          imgUrl: `http://localhost:3333` + garden.imgUrl,
         },
         location: {
           city: cepData.localidade,
@@ -195,7 +209,7 @@ export async function GardenRoute(app: FastifyTypedInstance) {
         return {
           garden: {
             ...garden,
-            img_url: `http://localhost:3333` + garden.img_url,
+            imgUrl: `http://localhost:3333` + garden.imgUrl,
           },
           location: {
             city: cepData.localidade,
