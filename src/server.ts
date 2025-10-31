@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import { fastify } from "fastify";
 
 import {
@@ -18,7 +18,7 @@ import fastifyMultipart from "@fastify/multipart";
 
 import path from "node:path";
 
-import serviceAccount from "../firebase.json";
+import { serviceAccount } from "./lib/firebase/admin.js";
 
 import { UserRoute } from "./routes/user.js";
 import { GardenRoute } from "./routes/garden.js";
@@ -51,7 +51,7 @@ app.register(fastifySwagger, {
 });
 
 app.register(fastifyMultipart);
-app.register(fastifyFirebase, serviceAccount);
+app.register(fastifyFirebase, serviceAccount as any);
 
 app.register(fastifySwaggerUi, {
   routePrefix: "/docs",
