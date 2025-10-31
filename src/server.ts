@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { fastify } from "fastify";
 
 import {
@@ -16,8 +17,8 @@ import fastifySwaggerUi from "@fastify/swagger-ui";
 import fastifyMultipart from "@fastify/multipart";
 
 import path from "node:path";
-//@ts-ignore
-import serviceAccount from "./config/firebase.json";
+
+import serviceAccount from "../firebase.json";
 
 import { UserRoute } from "./routes/user.js";
 import { GardenRoute } from "./routes/garden.js";
