@@ -8,7 +8,7 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["node"],
-
+    "noImplicitAny": false,
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
