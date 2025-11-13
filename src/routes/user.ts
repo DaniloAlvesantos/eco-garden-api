@@ -141,7 +141,10 @@ export async function UserRoute(app: FastifyTypedInstance) {
         },
       });
 
-      return res.send({ user }).code(200);
+      const data: Omit<typeof user, "password" | "passwordSalt"> = { ...user };
+
+      return res.send({ data }).code(200);
     }
   );
+  
 }

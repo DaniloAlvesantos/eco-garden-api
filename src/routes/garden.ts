@@ -9,6 +9,7 @@ import type { MapDataCoding } from "../@types/mapData.type.js";
 import { CEP } from "../lib/cep.js";
 import type { CEPType } from "../@types/cep.type.js";
 import { recordIrrigationEvent } from "../utils/recordIrrigationEvent.js";
+import { firestore_db } from "../lib/firebase/admin.js";
 
 export async function GardenRoute(app: FastifyTypedInstance) {
   app.get(
@@ -166,6 +167,21 @@ export async function GardenRoute(app: FastifyTypedInstance) {
 
       const cepData = cepResponse.data;
 
+      const irrigation = await firestore_db
+        .collection("garden")
+        .doc(garden.id)
+        .collection("irrigations")
+        .orderBy("timestamp", "desc")
+        .get();
+
+      const irrigations = irrigation.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          ...data,
+          timestamp: data.timestamp.toDate().toISOString(),
+        };
+      });
+
       const data = {
         garden: {
           ...garden,
@@ -176,6 +192,7 @@ export async function GardenRoute(app: FastifyTypedInstance) {
           state: cepData.uf,
           street: cepData.logradouro,
         },
+        irrigationHistory: irrigations,
       };
 
       return res.send({ data }).code(200);
