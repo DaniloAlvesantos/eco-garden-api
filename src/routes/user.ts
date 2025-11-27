@@ -1,3 +1,4 @@
+// server.ts
 import { z } from "zod";
 import { prisma } from "../lib/prismaClient.js";
 import { authenticate } from "../plugin/jwt.js";
@@ -43,7 +44,19 @@ export async function UserRoute(app: FastifyTypedInstance) {
       });
 
       if (user) {
-        res.send({ error: "User already exists." }).code(500);
+        const token = app.jwt.sign(
+          {
+            name,
+            email,
+            phone,
+          },
+          {
+            sub: user.id,
+            expiresIn: "7 days",
+          }
+        );
+
+        return res.send({ token }).code(201);
       }
 
       const { hash, salt } = hashPassword(password);
@@ -146,5 +159,45 @@ export async function UserRoute(app: FastifyTypedInstance) {
       return res.send({ data }).code(200);
     }
   );
-  
+
+  app.put(
+    "/user/update",
+    {
+      schema: {
+        tags: ["user"],
+        description: "Update user informations. JWT required",
+        body: z.object({
+          name: z.string().optional(),
+          email: z.email(),
+          phone: z.string().optional(),
+        }),
+      },
+      onRequest: [authenticate],
+    },
+    async (req, res) => {
+      const { name, email, phone } = req.body;
+      let user = await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+
+      if (!user) {
+        return res.send({ error: "User Does Not Exists." }).code(400);
+      }
+
+      user = await prisma.user.update({
+        where: {
+          id: req.user.sub,
+        },
+        data: {
+          name: name || user.name,
+          email: email || user.email,
+          phone: phone || user.phone,
+        },
+      });
+
+      return res.send({ user }).code(200);
+    }
+  );
 }

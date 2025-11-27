@@ -24,6 +24,7 @@ export async function recordIrrigationEvent({
     temperature: temperature,
     volume: volume,
     timestamp: Timestamp.now(),
+    initial: true,
   };
 
   try {
