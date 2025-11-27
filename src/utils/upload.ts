@@ -36,7 +36,7 @@ export async function uploadFile(file: MultipartFile, gardenName: string) {
   return {
     filename,
     url: filepath,
-    imgUrl,
+    imgUrl: "/uploads/" + imgUrl,
   };
 }
 

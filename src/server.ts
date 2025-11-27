@@ -22,6 +22,7 @@ import { serviceAccount } from "./lib/firebase/admin.js";
 
 import { UserRoute } from "./routes/user.js";
 import { GardenRoute } from "./routes/garden.js";
+import { SensorRoute } from "./routes/sensor.js";
 
 export const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
@@ -35,7 +36,10 @@ app.register(fastifyStatic, {
   prefix: "/uploads/",
 });
 
-app.register(fastifyCors, { origin: "*" });
+app.register(fastifyCors, {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+});
 app.register(fastifyJwt, {
   secret: "ecogarden-api-2025",
 });
@@ -50,7 +54,7 @@ app.register(fastifySwagger, {
   transform: jsonSchemaTransform,
 });
 
-app.register(fastifyMultipart);
+app.register(fastifyMultipart); // 👈 Correctly registered here
 app.register(fastifyFirebase, serviceAccount as any);
 
 app.register(fastifySwaggerUi, {
@@ -62,6 +66,7 @@ app.register(fastifySwaggerUi, {
 app.get("/", () => "hello world");
 app.register(UserRoute);
 app.register(GardenRoute);
+app.register(SensorRoute);
 
 app.listen({ port: 3333 }).then(() => {
   console.log("HTTP running on port:3333");
