@@ -23,6 +23,7 @@ import { serviceAccount } from "./lib/firebase/admin.js";
 import { UserRoute } from "./routes/user.js";
 import { GardenRoute } from "./routes/garden.js";
 import { SensorRoute } from "./routes/sensor.js";
+import { PlantRoute } from "./routes/plant.js";
 
 export const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
@@ -67,6 +68,7 @@ app.get("/", () => "hello world");
 app.register(UserRoute);
 app.register(GardenRoute);
 app.register(SensorRoute);
+app.register(PlantRoute);
 
 app.listen({ port: 3333 }).then(() => {
   console.log("HTTP running on port:3333");
