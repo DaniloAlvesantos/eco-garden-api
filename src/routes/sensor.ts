@@ -1,6 +1,7 @@
 import type { FastifyTypedInstance } from "../types";
 import { z } from "zod";
 import { mockSensor } from "../utils/mockSensor";
+import { getCurrentWeather } from "../utils/getCurrentWeather";
 
 export async function SensorRoute(app: FastifyTypedInstance) {
   app.post(
@@ -17,7 +18,10 @@ export async function SensorRoute(app: FastifyTypedInstance) {
     async (req, res) => {
       const { gardenId } = req.body;
 
-      await mockSensor(gardenId);
+      const weather = await getCurrentWeather({ q: { city: "Itapira" } });
+      const degree = weather!.current.temp_c;
+
+      await mockSensor(gardenId, degree);
 
       return res.send({ success: true }).code(201);
     }

@@ -2,7 +2,6 @@ import type { Timestamp } from "firebase-admin/firestore";
 
 interface BaseSensorData {
   timestamp: Timestamp;
-  value: number;
 }
 
 export interface HumiditySensorData extends BaseSensorData {

@@ -11,6 +11,7 @@ import type { CEPType } from "../@types/cep.type.js";
 import { recordIrrigationEvent } from "../utils/recordIrrigationEvent.js";
 import { firestore_db } from "../lib/firebase/admin.js";
 import { getCurrentWeather } from "../utils/getCurrentWeather.js";
+import { recordSensorData } from "../utils/recordSensorEvent.js";
 
 export async function GardenRoute(app: FastifyTypedInstance) {
   app.get(
@@ -125,6 +126,18 @@ export async function GardenRoute(app: FastifyTypedInstance) {
         humidity: 0,
         temperature: 0,
         volume: 0,
+      });
+
+      const sensorHimidity = await recordSensorData({
+        gardenId: garden.id,
+        type: "HUMIDITY",
+        percentage: 0,
+      });
+
+      const sensorWaterLevel = await recordSensorData({
+        gardenId: garden.id,
+        type: "WATER_LEVEL",
+        depth_cm: 0,
       });
 
       return res.send({ data: garden, collection }).code(201);
@@ -448,6 +461,42 @@ export async function GardenRoute(app: FastifyTypedInstance) {
         message: "Process completed",
         results,
       });
+    }
+  );
+
+  app.get(
+    "/garden/dashboard",
+    {
+      schema: {
+        tags: ["garden"],
+        description: "Get necesseries datas for dashboard",
+      },
+      onRequest: [authenticate],
+    },
+    async (req, res) => {
+      const userId = req.user.sub;
+
+      const gardens = await prisma.garden.findMany({
+        where: {
+          userId,
+        },
+      });
+
+      const sortedGarndes = gardens.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      );
+
+      const gardensCount = gardens.length;
+
+      return res
+        .send({
+          gardensCount,
+          recentGarden: sortedGarndes.map((d) => ({
+            name: d.name,
+            id: d.id,
+          })),
+        })
+        .code(200);
     }
   );
 }

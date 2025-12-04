@@ -4,9 +4,12 @@ import { createWriteStream, promises as fsPromises } from "node:fs";
 import path from "node:path";
 import type { MultipartFile } from "@fastify/multipart";
 
-async function ensureUploadDir(garden: string) {
-  const gardenDir = path.join(UPLOADS_DIR, garden);
-  await fsPromises.mkdir(gardenDir, { recursive: true });
+function sanitizeFolderName(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-_]/g, "");
 }
 
 function sanitizeFilename(str: string): string {
@@ -17,32 +20,44 @@ function sanitizeFilename(str: string): string {
     .replace(/[^a-z0-9-.]/g, "");
 }
 
+async function ensureUploadDir(garden: string) {
+  const sanitizedGarden = sanitizeFolderName(garden);
+  const gardenDir = path.join(UPLOADS_DIR, sanitizedGarden);
+  await fsPromises.mkdir(gardenDir, { recursive: true });
+  return sanitizedGarden;
+}
+
 export async function uploadFile(file: MultipartFile, gardenName: string) {
-  await ensureUploadDir(gardenName);
+  const sanitizedGarden = await ensureUploadDir(gardenName);
 
   const originalBasename = path.parse(file.filename.trim()).name;
   const originalExt = path.parse(file.filename.trim()).ext;
 
   const sanitizedBasename = sanitizeFilename(originalBasename);
 
-  const filename = `${gardenName}_${sanitizedBasename}${originalExt}`;
+  const filename = `${sanitizedGarden}_${sanitizedBasename}${originalExt}`;
+  const filepath = path.join(UPLOADS_DIR, sanitizedGarden, filename);
 
-  const filepath = path.join(UPLOADS_DIR, gardenName, filename);
   console.log("Saving file to:", filepath);
 
   await pipeline(file.file, createWriteStream(filepath));
-  const imgUrl = path.join(gardenName, filename);
 
   return {
     filename,
     url: filepath,
-    imgUrl: "/uploads/" + imgUrl,
+    imgUrl: "/uploads/" + path.join(sanitizedGarden, filename),
+    folder: sanitizedGarden,
   };
 }
 
 async function deleteFile(currentUrl: string, gardenName: string) {
+  const sanitizedGarden = sanitizeFolderName(gardenName);
   const currentFilename = path.basename(currentUrl);
-  const currentFilePath = path.join(UPLOADS_DIR, gardenName, currentFilename);
+  const currentFilePath = path.join(
+    UPLOADS_DIR,
+    sanitizedGarden,
+    currentFilename
+  );
 
   try {
     await fsPromises.unlink(currentFilePath);
@@ -65,8 +80,8 @@ export async function replaceFile(
   currentUrl: string,
   gardenName: string
 ) {
-  await ensureUploadDir(gardenName);
-  await deleteFile(currentUrl, gardenName);
-  const newFile = await uploadFile(file, gardenName);
+  const sanitizedGarden = await ensureUploadDir(gardenName);
+  await deleteFile(currentUrl, sanitizedGarden);
+  const newFile = await uploadFile(file, sanitizedGarden);
   return newFile;
 }

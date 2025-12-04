@@ -1,6 +1,6 @@
 import { firestore_db } from "../lib/firebase/admin";
 
-export const mockSensor = async (gardenId: string) => {
+export const mockSensor = async (gardenId: string, degree: number) => {
   try {
     const humidityRef = firestore_db
       .collection("garden")
@@ -56,7 +56,7 @@ export const mockSensor = async (gardenId: string) => {
       .collection("irrigations")
       .add({
         humidity: humidityPercentage,
-        temperature: 0,
+        temperature: degree ?? 25,
         volume: Math.round(Math.random() * 150),
         timestamp: currentTimestamp,
       });
