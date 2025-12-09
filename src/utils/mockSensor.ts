@@ -1,6 +1,6 @@
 import { firestore_db } from "../lib/firebase/admin";
 
-export const mockSensor = async (gardenId: string) => {
+export const mockSensor = async (gardenId: string, degree: number) => {
   try {
     const humidityRef = firestore_db
       .collection("garden")
@@ -23,10 +23,7 @@ export const mockSensor = async (gardenId: string) => {
     let waterLevelPercentage = Math.round(Math.random() * (95 - 10) + 10);
 
     if (currentHumidity?.percentage !== undefined) {
-      humidityPercentage = Math.min(
-        humidityPercentage,
-        currentHumidity.percentage - 1
-      );
+      humidityPercentage = currentHumidity.percentage + 25;
     }
 
     if (currentWaterLevel?.depth_cm !== undefined) {
@@ -52,5 +49,16 @@ export const mockSensor = async (gardenId: string) => {
       humidityRef.update(humidityPayload),
       waterLevelRef.update(waterLevelPayload),
     ]);
+
+    await firestore_db
+      .collection("garden")
+      .doc(gardenId)
+      .collection("irrigations")
+      .add({
+        humidity: humidityPercentage,
+        temperature: degree ?? 25,
+        volume: Math.round(Math.random() * 150),
+        timestamp: currentTimestamp,
+      });
   } catch (err) {}
 };

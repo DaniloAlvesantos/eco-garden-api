@@ -11,6 +11,7 @@ import type { CEPType } from "../@types/cep.type.js";
 import { recordIrrigationEvent } from "../utils/recordIrrigationEvent.js";
 import { firestore_db } from "../lib/firebase/admin.js";
 import { getCurrentWeather } from "../utils/getCurrentWeather.js";
+import { recordSensorData } from "../utils/recordSensorEvent.js";
 
 export async function GardenRoute(app: FastifyTypedInstance) {
   app.get(
@@ -125,6 +126,18 @@ export async function GardenRoute(app: FastifyTypedInstance) {
         humidity: 0,
         temperature: 0,
         volume: 0,
+      });
+
+      const sensorHimidity = await recordSensorData({
+        gardenId: garden.id,
+        type: "HUMIDITY",
+        percentage: 0,
+      });
+
+      const sensorWaterLevel = await recordSensorData({
+        gardenId: garden.id,
+        type: "WATER_LEVEL",
+        depth_cm: 0,
       });
 
       return res.send({ data: garden, collection }).code(201);
@@ -343,6 +356,147 @@ export async function GardenRoute(app: FastifyTypedInstance) {
       });
 
       return res.send({ garden }).code(200);
+    }
+  );
+
+  app.post(
+    "/garden/add/plants",
+    {
+      onRequest: [authenticate],
+      schema: {
+        tags: ["garden"],
+        description: "Add many plants to a garden",
+        body: z.object({
+          gardenId: z.string(),
+          plants: z
+            .array(
+              z.object({
+                plantId: z.number(),
+                quant: z.number().min(1),
+              })
+            )
+            .min(1),
+        }),
+      },
+    },
+    async (req, res) => {
+      const userId = req.user.sub;
+      const { gardenId, plants } = req.body;
+
+      // Verify garden ownership
+      const garden = await prisma.garden.findUnique({
+        where: { id: gardenId },
+      });
+
+      if (!garden) {
+        return res.status(404).send({ error: "Garden not found" });
+      }
+
+      if (garden.userId !== userId) {
+        return res.status(403).send({ error: "You do not own this garden" });
+      }
+
+      const results = [];
+
+      for (const { plantId, quant } of plants) {
+        const plant = await prisma.plant.findUnique({
+          where: { id: plantId },
+        });
+
+        if (!plant) {
+          results.push({
+            plantId,
+            status: "error",
+            message: "Plant not found",
+          });
+          continue;
+        }
+
+        const existing = await prisma.plantGarden.findUnique({
+          where: {
+            plantId_gardenId: {
+              plantId,
+              gardenId,
+            },
+          },
+        });
+
+        if (existing) {
+          const updated = await prisma.plantGarden.update({
+            where: {
+              plantId_gardenId: {
+                plantId,
+                gardenId,
+              },
+            },
+            data: {
+              quant: existing.quant + quant,
+            },
+          });
+
+          results.push({
+            plantId,
+            status: "updated",
+            plantGarden: updated,
+          });
+        } else {
+          const created = await prisma.plantGarden.create({
+            data: {
+              plantId,
+              gardenId,
+              quant,
+              dataPlantio: new Date(),
+            },
+          });
+
+          results.push({
+            plantId,
+            status: "created",
+            plantGarden: created,
+          });
+        }
+      }
+
+      return res.send({
+        message: "Process completed",
+        results,
+      });
+    }
+  );
+
+  app.get(
+    "/garden/dashboard",
+    {
+      schema: {
+        tags: ["garden"],
+        description: "Get necesseries datas for dashboard",
+      },
+      onRequest: [authenticate],
+    },
+    async (req, res) => {
+      const userId = req.user.sub;
+
+      const gardens = await prisma.garden.findMany({
+        where: {
+          userId,
+        },
+      });
+
+      const sortedGarndes = gardens.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      );
+
+      const gardensCount = gardens.length;
+
+      return res
+        .send({
+          gardensCount,
+          recentGarden: sortedGarndes.map((d) => ({
+            name: d.name,
+            id: d.id,
+          })),
+        })
+        .code(200);
     }
   );
 }
